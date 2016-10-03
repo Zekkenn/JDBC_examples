@@ -21,6 +21,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -34,10 +35,10 @@ public class JDBCExample {
     
     public static void main(String args[]){
         try {
-            String url="jdbc:mysql://HOST:3306/BD";
+            String url="jdbc:mysql://desarrollo.is.escuelaing.edu.co:3306/bdprueba";
             String driver="com.mysql.jdbc.Driver";
-            String user="USER";
-            String pwd="PWD";
+            String user="bdprueba";
+            String pwd="bdprueba";
                         
             Class.forName(driver);
             Connection con=DriverManager.getConnection(url,user,pwd);
@@ -57,11 +58,11 @@ public class JDBCExample {
             System.out.println("-----------------------");
             
             
-            int suCodigoECI=20134423;
-            registrarNuevoProducto(con, suCodigoECI, "SU NOMBRE", 99999999);            
+            int suCodigoECI=2106457;
+            registrarNuevoProducto(con, suCodigoECI, "HeadPhones", 99999999);            
             con.commit();
             
-            cambiarNombreProducto(con, suCodigoECI, "EL NUEVO NOMBRE");
+            cambiarNombreProducto(con, suCodigoECI, "HeadPhones Ultra");
             con.commit();
             
             
@@ -83,8 +84,13 @@ public class JDBCExample {
      * @throws SQLException 
      */
     public static void registrarNuevoProducto(Connection con, int codigo, String nombre,int precio) throws SQLException{
-        //Crear preparedStatement
+        //Crear prepared statement
+        PreparedStatement ps = con.prepareStatement("INSERT INTO ORD_PRODUCTOS VALUES( ?, ?, ? )");
         //Asignar parámetros
+        ps.setInt(1, codigo);
+        ps.setString(2, nombre);
+        ps.setInt(3, precio);
+        ps.execute();
         //usar 'execute'
 
         
@@ -97,14 +103,22 @@ public class JDBCExample {
      * @param con la conexión JDBC
      * @param codigoPedido el código del pedido
      * @return 
+     * @throws SQLException 
      */
-    public static List<String> nombresProductosPedido(Connection con, int codigoPedido){
+    public static List<String> nombresProductosPedido(Connection con, int codigoPedido) throws SQLException{
         List<String> np=new LinkedList<>();
         
         //Crear prepared statement
+        PreparedStatement ps = con.prepareStatement("SELECT nombre FROM ORD_DETALLES_PEDIDO, ORD_PRODUCTOS WHERE pedido_fk = ? "
+                + "AND producto_fk = codigo");
         //asignar parámetros
+        ps.setInt(1, codigoPedido);
         //usar executeQuery
+        ResultSet rs = ps.executeQuery();
         //Sacar resultados del ResultSet
+        while(rs.next()){
+            np.add(rs.getString(1));
+        }
         //Llenar la lista y retornarla
         
         return np;
@@ -116,15 +130,20 @@ public class JDBCExample {
      * @param con
      * @param codigoPedido código del pedido cuyo total se calculará
      * @return el costo total del pedido (suma de: cantidades*precios)
+     * @throws SQLException 
      */
-    public static int valorTotalPedido(Connection con, int codigoPedido){
+    public static int valorTotalPedido(Connection con, int codigoPedido) throws SQLException{
         
         //Crear prepared statement
+        PreparedStatement ps = con.prepareStatement("SELECT SUM(precio*cantidad) FROM ORD_DETALLES_PEDIDO, ORD_PRODUCTOS WHERE pedido_fk = ? "
+                + "AND producto_fk = codigo");
         //asignar parámetros
+        ps.setInt(1, codigoPedido);
         //usar executeQuery
+        ResultSet rs = ps.executeQuery();
         //Sacar resultado del ResultSet
-        
-        return 0;
+        rs.next();
+        return rs.getInt(1);
     }
     
 
@@ -133,15 +152,22 @@ public class JDBCExample {
      * @param con
      * @param codigoProducto codigo del producto cuyo nombre se cambiará
      * @param nuevoNombre el nuevo nombre a ser asignado
+     * @throws SQLException 
      */
     public static void cambiarNombreProducto(Connection con, int codigoProducto, 
-            String nuevoNombre){
+            String nuevoNombre) throws SQLException{
         
         //Crear prepared statement
+        PreparedStatement ps = con.prepareStatement("UPDATE ORD_PRODUCTOS set nombre = ? where codigo = ?");
         //asignar parámetros
+        ps.setString(1, nuevoNombre);
+        ps.setInt(2, codigoProducto);
         //usar executeUpdate
+        int rs = ps.executeUpdate();
         //verificar que se haya actualizado exactamente un registro
-        
+        if (rs != 1){
+            throw new SQLException("No se actualiza solo un registro.");
+        }
         
     }
     
